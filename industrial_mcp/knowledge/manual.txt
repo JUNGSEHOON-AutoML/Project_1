@@ -1,0 +1,15 @@
+[Industrial Component Manual]
+Part: Zipper (Industrial Grade)
+- Standard tooth alignment tolerance: 0.1mm.
+- Common defects: Misalignment, cooling cracks, surface oxidation.
+- Maintenance: Lubricate every 5,000 cycles using silicone-based oil.
+
+Part: Glass Bottle (Food Grade)
+- Crack tolerance: 0.0mm (Zero tolerance).
+- Surface bubble size limit: < 0.5mm.
+- Reject criteria: Any vertical cracks longer than 1mm on the neck area.
+
+Part: Metal Bolt (Grade 8.8)
+- Torque specification: 15-20 Nm.
+- Thread pitch: 1.25mm.
+- Defect note: Burrs on the thread area must be removed before installation.

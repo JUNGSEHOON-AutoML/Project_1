@@ -1,0 +1,34 @@
+{
+  "design_patterns": [
+    {
+      "pattern_name": "High-Texture-Complex-Structure",
+      "description": "Suitable for parts with fine textures and repetitive mechanical structures.",
+      "representative_classes": ["zipper", "screw", "grid", "tile"],
+      "recommended_config": {
+        "layers": "L1-2-3",
+        "tau": 0.01,
+        "sampler": "greedy",
+        "backbone": "wideresnet50"
+      },
+      "expected_performance": {
+        "pixel_ap": "> 0.60",
+        "instance_auroc": "> 0.97"
+      }
+    },
+    {
+      "pattern_name": "Global-Geometric-Structure",
+      "description": "Suitable for objects with strong global shapes and simple textures.",
+      "representative_classes": ["bottle", "capsule", "metal_nut"],
+      "recommended_config": {
+        "layers": "L2-3",
+        "tau": 0.03,
+        "sampler": "greedy",
+        "backbone": "wideresnet50"
+      },
+      "expected_performance": {
+        "pixel_ap": "> 0.40",
+        "instance_auroc": "> 0.98"
+      }
+    }
+  ]
+}

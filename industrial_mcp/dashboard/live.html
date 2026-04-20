@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Visual Inspection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --panel: #16161a;
+            --accent: #00f2ff;
+            --fail: #ff0055;
+            --pass: #00ffaa;
+            --text: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Side Panel */
+        .sidebar {
+            width: 320px;
+            background: var(--panel);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .status-box {
+            background: rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .status-light {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            background: #333;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+        }
+
+        .status-light.pass { background: var(--pass); box-shadow: 0 0 20px var(--pass); }
+        .status-light.fail { background: var(--fail); box-shadow: 0 0 20px var(--fail); }
+
+        .status-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #888;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1rem;
+        }
+
+        .log-entry { margin-bottom: 0.5rem; border-left: 2px solid #444; padding-left: 0.5rem; }
+        .log-entry.fail { border-left-color: var(--fail); color: var(--fail); }
+
+        /* Main View */
+        .main-view {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .camera-feed {
+            flex: 1;
+            background: #000;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.05);
+        }
+
+        .feed-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            color: var(--accent);
+        }
+
+        .heatmap-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: #000;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .metrics-bar {
+            height: 100px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .metric-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
+        .metric-value { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; color: var(--accent); }
+
+        /* Animation */
+        .scanning-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            top: 0;
+            animation: scan 3s linear infinite;
+            box-shadow: 0 0 15px var(--accent);
+            z-index: 10;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">V-INSPECTOR PRO</div>
+        
+        <div class="status-box">
+            <div id="light" class="status-light"></div>
+            <div id="status-txt" class="status-text">STANDBY</div>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <p class="metric-label">AI SENSITIVITY</p>
+            <input type="range" style="width: 100%; accent-color: var(--accent);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #666; margin-top: 0.4rem;">
+                <span>LOW</span><span>HIGH</span>
+            </div>
+        </div>
+
+        <div class="log-container" id="logs">
+            <div class="log-entry">17:35:01 System Initialized...</div>
+            <div class="log-entry">17:35:05 Waiting for feed...</div>
+        </div>
+        
+        <button onclick="startInspection()" style="margin-top: 1rem; width: 100%; padding: 1rem; border-radius: 8px; border: none; background: var(--accent); color: #000; font-weight: 700; cursor: pointer;">START INSPECTION</button>
+    </div>
+
+    <div class="main-view">
+        <div class="camera-feed" id="feed-box">
+            <div class="feed-overlay">LIVE FEED: CAM_01</div>
+            <div class="scanning-line" id="scanner" style="display: none;"></div>
+            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #444;">
+                <p id="feed-placeholder">PRESS START TO INITIALIZE CAMERA</p>
+            </div>
+        </div>
+
+        <div class="metrics-bar">
+            <div class="metric-card">
+                <div class="metric-label">Anomaly Score</div>
+                <div class="metric-value" id="score-val">0.000</div>
+            </div>
+            <div class="metric-card" style="grid-column: span 2; background: rgba(0, 242, 255, 0.05); border: 1px solid var(--accent);">
+                <div class="metric-label">AI Expert Advice (LangChain + RAG)</div>
+                <div id="expert-advice" style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--text-main);">
+                    [Waiting for detection...] 에이전트가 지침서를 분석 중입니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logs = document.getElementById('logs');
+        const light = document.getElementById('light');
+        const statusTxt = document.getElementById('status-txt');
+        const scoreVal = document.getElementById('score-val');
+        const feedBox = document.getElementById('feed-box');
+        const scanner = document.getElementById('scanner');
+
+        // Real-time System Status Sync
+        async function updateSystemStatus() {
+            try {
+                const response = await fetch('http://localhost:8000/api/system/status');
+                const data = await response.json();
+                // Update UI elements if they exist (adding them dynamically if needed)
+                console.log("System Status:", data);
+            } catch (e) {
+                console.warn("Backend not reachable. Running in simulation mode.");
+            }
+        }
+
+        function addLog(msg, type='') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            const now = new Date();
+            entry.innerText = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} ${msg}`;
+            logs.prepend(entry);
+        }
+
+        async function startInspection() {
+            addLog("Initializing Deep Learning Engine (OpenVINO)...");
+            document.getElementById('feed-placeholder').style.display = 'none';
+            scanner.style.display = 'block';
+            
+            // Simulation loop with Backend call
+            let count = 0;
+            const interval = setInterval(async () => {
+                count++;
+                
+                try {
+                    const response = await fetch('http://localhost:8000/api/inspection/latest');
+                    const data = await response.json();
+                    
+                    const score = data.anomaly_score;
+                    scoreVal.innerText = score.toFixed(4);
+                    
+                    if (data.result === 'FAIL') {
+                        light.className = 'status-light fail';
+                        statusTxt.innerText = 'FAIL';
+                        statusTxt.style.color = 'var(--fail)';
+                        addLog(`Unit #${data.unit_id}: REJECTED (Score: ${score.toFixed(3)})`, 'fail');
+                        
+                        // Update Expert Advice Panel
+                        document.getElementById('expert-advice').innerHTML = `
+                            <strong style="color: var(--fail);">[진단]</strong> ${data.llm_insight}<br>
+                            <strong style="color: var(--accent);">[매뉴얼 근거]</strong> ${data.rag_rule}
+                        `;
+                    } else {
+                        light.className = 'status-light pass';
+                        statusTxt.innerText = 'PASS';
+                        statusTxt.style.color = 'var(--pass)';
+                        addLog(`Unit #${data.unit_id}: PASSED`);
+                        document.getElementById('expert-advice').innerText = "정상 작동 중입니다. 특이 사항 없음.";
+                    }
+                } catch (e) {
+                    // Fallback to local simulation if backend is down
+                    const score = Math.random() * 0.2;
+                    scoreVal.innerText = score.toFixed(4);
+                    light.className = 'status-light pass';
+                    statusTxt.innerText = 'PASS';
+                }
+            }, 3000);
+        }
+
+        // Initial Status Check
+        setInterval(updateSystemStatus, 5000);
+    </script>
+</body>
+</html>
